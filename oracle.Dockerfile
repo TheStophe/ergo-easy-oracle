@@ -1,5 +1,5 @@
 # Valid CCARCH options: aarch64 or the default x86_64 
-ARG CCARCH="x86_64"
+ARG CCARCH="aarch64"
 
 FROM messense/rust-musl-cross:${CCARCH}-musl AS builder
 WORKDIR /home/rust/src
@@ -22,7 +22,7 @@ RUN adduser \
     oracle-core
 
 FROM busybox:stable-musl AS final
-ARG CCARCH="x86_64"
+ARG CCARCH="aarch64"
 COPY --from=builder /home/rust/src/target/${CCARCH}-unknown-linux-musl/release/oracle-core /usr/local/bin/oracle-core
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd

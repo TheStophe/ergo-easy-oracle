@@ -1,14 +1,16 @@
-version: "3.8"
+#version: "3.8"
 
 networks:
-  default:
-    external: true
-    name: ergo-node
+  ergo-node:
+    driver: bridge
+#  default:
+#    external: true
+#    name: ergo-node
 
 services:
   # Ergo blockchain node
   node:
-    image: ergoplatform/ergo:v5.0.24
+    image: ergoplatform/ergo:v6.1.0
     container_name: ergo-node
     command: --mainnet -c /etc/ergo.conf
     volumes:
@@ -24,6 +26,15 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - ergo-node
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9053/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   # Ergo oracle-core
   core:
     # Uncomment below 5 lines and comment out 'image: ...' if custom building
@@ -32,7 +43,7 @@ services:
     #  dockerfile: ../oracle.Dockerfile # Relative to oracle-core repo
     #  args:
     #    CCARCH: ${CCARCH:-x86_64}
-    image: ergoplatform/oracle-core:latest
+    image: ergoplatform/oracle-core:v2.0.4
     container_name: ergo-oracle-core
     volumes:
       - ./oracle_data:/data
@@ -40,14 +51,19 @@ services:
       - "9010:9010"
       - "9011:9011"
     depends_on:
-      - "node"
+      node:
+        condition: service_healthy
     restart: unless-stopped
     env_file:
       - .env
+      - .secrets
     logging:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+     - ergo-node
+
   # Prometheus
   prometheus:
     image: prom/prometheus
@@ -62,6 +78,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - ergo-node
+
   # Grafana
   grafana:
     image: grafana/grafana:latest
@@ -81,6 +100,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - ergo-node
 
 volumes:
     grafana:
